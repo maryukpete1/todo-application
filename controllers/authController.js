@@ -64,16 +64,42 @@ exports.login = (req, res, next) => {
         return res.redirect('/auth/login');
       }
 
-      req.logIn(user, (err) => {
+      // Save session before login
+      req.session.save((err) => {
         if (err) {
-          logger.error('Login session error:', err);
+          logger.error('Session save error during login:', err);
           req.flash('error_msg', 'An error occurred during login');
           return next(err);
         }
 
-        logger.info(`User logged in successfully: ${user.email}`);
-        req.flash('success_msg', 'Welcome back!');
-        return res.redirect('/tasks');
+        req.logIn(user, (err) => {
+          if (err) {
+            logger.error('Login session error:', err);
+            req.flash('error_msg', 'An error occurred during login');
+            return next(err);
+          }
+
+          // Save session again after login
+          req.session.save((err) => {
+            if (err) {
+              logger.error('Session save error after login:', err);
+              req.flash('error_msg', 'An error occurred during login');
+              return next(err);
+            }
+
+            logger.info(`User logged in successfully: ${user.email}`);
+            req.flash('success_msg', 'Welcome back!');
+            
+            // Log session state
+            logger.debug('Session after login:', {
+              id: req.sessionID,
+              authenticated: req.isAuthenticated(),
+              user: user.email
+            });
+
+            return res.redirect('/tasks');
+          });
+        });
       });
     })(req, res, next);
   } catch (err) {
@@ -85,14 +111,33 @@ exports.login = (req, res, next) => {
 
 exports.logout = (req, res, next) => {
   const userEmail = req.user ? req.user.email : 'unknown';
-  req.logout((err) => {
+  
+  // Save session before logout
+  req.session.save((err) => {
     if (err) {
-      logger.error('Logout error:', err);
+      logger.error('Session save error during logout:', err);
       req.flash('error_msg', 'An error occurred during logout');
       return next(err);
     }
-    logger.info(`User logged out: ${userEmail}`);
-    req.flash('success_msg', 'You have been logged out successfully');
-    res.redirect('/');
+
+    req.logout((err) => {
+      if (err) {
+        logger.error('Logout error:', err);
+        req.flash('error_msg', 'An error occurred during logout');
+        return next(err);
+      }
+
+      // Destroy session after logout
+      req.session.destroy((err) => {
+        if (err) {
+          logger.error('Session destroy error:', err);
+          return next(err);
+        }
+
+        logger.info(`User logged out: ${userEmail}`);
+        req.flash('success_msg', 'You have been logged out successfully');
+        res.redirect('/');
+      });
+    });
   });
 };

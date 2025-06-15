@@ -38,28 +38,46 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(methodOverride('_method'));
 
 // Session
-app.use(session({
+const sessionConfig = {
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: true,
   saveUninitialized: true,
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI,
     ttl: 14 * 24 * 60 * 60, // 14 days
-    autoRemove: 'native', // Use MongoDB's TTL index
-    touchAfter: 24 * 3600, // Only update session once per day
+    autoRemove: 'native',
+    touchAfter: 24 * 3600,
     crypto: {
       secret: process.env.SESSION_SECRET || 'your-secret-key'
+    },
+    // Add error handling for store
+    onError: function(err) {
+      logger.error('Session store error:', err);
     }
   }),
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * 14, // 14 days
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/'
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    path: '/',
+    domain: process.env.COOKIE_DOMAIN || undefined
   },
-  name: 'sessionId' // Custom session name
-}));
+  name: 'sessionId',
+  rolling: true, // Refresh session on activity
+  proxy: process.env.NODE_ENV === 'production' // Trust reverse proxy in production
+};
+
+// Log session configuration in development
+if (process.env.NODE_ENV === 'development') {
+  logger.info('Session configuration:', {
+    secure: sessionConfig.cookie.secure,
+    sameSite: sessionConfig.cookie.sameSite,
+    proxy: sessionConfig.proxy
+  });
+}
+
+app.use(session(sessionConfig));
 
 // Flash messages - must be after session
 app.use(flash());
@@ -82,8 +100,18 @@ app.use((req, res, next) => {
   if (process.env.NODE_ENV === 'development') {
     res.locals.session = {
       id: req.sessionID,
-      cookie: req.session.cookie
+      cookie: req.session.cookie,
+      user: req.user ? req.user.email : null
     };
+  }
+  
+  // Log session state for debugging
+  if (process.env.NODE_ENV === 'development') {
+    logger.debug('Session state:', {
+      id: req.sessionID,
+      authenticated: req.isAuthenticated(),
+      user: req.user ? req.user.email : null
+    });
   }
   
   next();
