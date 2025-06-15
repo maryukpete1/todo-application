@@ -46,7 +46,10 @@ app.use(session({
     mongoUrl: process.env.MONGODB_URI,
     ttl: 14 * 24 * 60 * 60, // 14 days
     autoRemove: 'native', // Use MongoDB's TTL index
-    touchAfter: 24 * 3600 // Only update session once per day
+    touchAfter: 24 * 3600, // Only update session once per day
+    crypto: {
+      secret: process.env.SESSION_SECRET || 'your-secret-key'
+    }
   }),
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * 14, // 14 days
@@ -54,22 +57,35 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/'
-  }
+  },
+  name: 'sessionId' // Custom session name
 }));
 
-// Flash messages
+// Flash messages - must be after session
 app.use(flash());
 
-// Passport middleware
+// Passport middleware - must be after session and flash
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Global variables - must be after session and flash
+// Global variables - must be after session, flash, and passport
 app.use((req, res, next) => {
+  // Make user available to all views
   res.locals.user = req.user || null;
+  
+  // Make flash messages available to all views
   res.locals.success_msg = req.flash('success_msg');
   res.locals.error_msg = req.flash('error_msg');
   res.locals.error = req.flash('error');
+  
+  // Add session info to locals for debugging
+  if (process.env.NODE_ENV === 'development') {
+    res.locals.session = {
+      id: req.sessionID,
+      cookie: req.session.cookie
+    };
+  }
+  
   next();
 });
 
