@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const User = require('../../models/User');
-const bcrypt = require('bcryptjs');
 const logger = require('../../config/winston');
 
 class TestSetup {
@@ -11,59 +10,76 @@ class TestSetup {
   }
 
   async connect() {
-    // Create in-memory MongoDB server with fixed port
-    this.mongoServer = await MongoMemoryServer.create({
-      instance: {
-        port: 27017,
-        dbName: 'testdb'
-      }
-    });
-    this.mongoUri = this.mongoServer.getUri();
-
-    // Connect to MongoDB with hardcoded options
-    await mongoose.connect(this.mongoUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
+    try {
+      this.mongoServer = await MongoMemoryServer.create();
+      this.mongoUri = this.mongoServer.getUri();
+      
+      await mongoose.connect(this.mongoUri);
+      await mongoose.connection.db.admin().ping();
+      
+      logger.info('Connected to test MongoDB');
+    } catch (err) {
+      logger.error('Test database connection error:', err);
+      throw err;
+    }
   }
 
   async disconnect() {
-    await mongoose.disconnect();
-    await this.mongoServer.stop();
+    try {
+      await mongoose.disconnect();
+      await this.mongoServer.stop();
+      logger.info('Disconnected from test MongoDB');
+    } catch (err) {
+      logger.error('Test database disconnection error:', err);
+      throw err;
+    }
   }
 
   async clearDatabase() {
-    await User.deleteMany({});
+    try {
+      const collections = mongoose.connection.collections;
+      for (const key in collections) {
+        await collections[key].deleteMany();
+      }
+      logger.info('Test database cleared');
+    } catch (err) {
+      logger.error('Test database clear error:', err);
+      throw err;
+    }
   }
 
   async createTestUser() {
     try {
-      // Clear any existing users first
-      await User.deleteMany({});
+      await this.clearDatabase();
 
-      // Create test user with proper password hashing
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('testpass123', salt);
-
-      const user = await User.create({
+      // Create user using the User model directly
+      const user = new User({
         email: 'test@example.com',
-        name: 'Test User',
-        password: hashedPassword
+        password: 'testpass123',
+        name: 'Test User'
       });
 
-      // Verify user was created with password
-      const createdUser = await User.findOne({ email: user.email }).select('+password');
-      if (!createdUser || !createdUser.password) {
-        throw new Error('Test user was not created properly');
+      // Save the user - this will trigger the pre-save middleware for password hashing
+      await user.save();
+
+      // Verify user was created and password was hashed
+      const createdUser = await User.findOne({ email: 'test@example.com' }).select('+password');
+      if (!createdUser) {
+        throw new Error('Test user creation failed');
       }
 
-      // Verify password can be compared
-      const isMatch = await bcrypt.compare('testpass123', createdUser.password);
-      if (!isMatch) {
-        throw new Error('Password hashing verification failed');
+      // Verify password was hashed (should start with $2)
+      if (!createdUser.password.startsWith('$2')) {
+        throw new Error('Password was not hashed');
       }
 
-      logger.info('Test user created and verified:', user.email);
+      // Verify we can authenticate with the password
+      const isAuthenticated = await createdUser.comparePassword('testpass123');
+      if (!isAuthenticated) {
+        throw new Error('Password authentication failed');
+      }
+
+      logger.info('Test user created successfully:', user.email);
       return user;
     } catch (err) {
       logger.error('Create test user error:', err);
