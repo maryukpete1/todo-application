@@ -13,8 +13,8 @@ router.get('/login', authMiddleware.forwardAuthenticated, (req, res) => {
 router.post(
   '/login',
   [
-    check('username', 'Username is required').notEmpty(),
-    check('password', 'Password is required').notEmpty(),
+    check('email', 'Email is required').notEmpty().isEmail(),
+    check('password', 'Password is required').notEmpty()
   ],
   authController.login
 );
@@ -28,8 +28,9 @@ router.get('/register', authMiddleware.forwardAuthenticated, (req, res) => {
 router.post(
   '/register',
   [
-    check('username', 'Username must be at least 3 characters').isLength({ min: 3 }),
-    check('password', 'Password must be at least 6 characters').isLength({ min: 6 }),
+    check('email', 'Please include a valid email').isEmail(),
+    check('name', 'Name is required').notEmpty().isLength({ min: 2 }),
+    check('password', 'Password must be at least 6 characters').isLength({ min: 6 })
   ],
   authController.register
 );

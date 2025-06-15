@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const Task = require('../models/Task');
+const logger = require('../config/winston');
 
 // Clean up deleted tasks older than 30 days
 const cleanupDeletedTasks = async () => {
@@ -33,14 +34,14 @@ const notifyUpcomingTasks = async () => {
         $gte: new Date(),
         $lt: tomorrow,
       },
-    }).populate('user', 'username');
+    }).populate('user', 'email');
 
     if (tasks.length > 0) {
-      console.log(`[Cron] Found ${tasks.length} tasks due today`);
+      logger.info(`Found ${tasks.length} tasks due today`);
       // In a real app, you would send notifications here
     }
   } catch (err) {
-    console.error('[Cron] Error in notifyUpcomingTasks:', err.message);
+    logger.error('Error in notifyUpcomingTasks:', err);
   }
 };
 
@@ -49,8 +50,8 @@ const startCronJobs = () => {
     // Run every day at midnight
     cron.schedule('0 0 * * *', cleanupDeletedTasks);
     
-    // Run every hour
-    cron.schedule('0 * * * *', notifyUpcomingTasks);
+    // Run every day at 9 AM
+    cron.schedule('0 9 * * *', notifyUpcomingTasks);
     
     console.log('[Cron] Jobs started successfully');
   } catch (err) {

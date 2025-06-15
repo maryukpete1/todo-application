@@ -39,7 +39,7 @@ exports.createTask = async (req, res, next) => {
     await task.save();
     req.flash('success_msg', 'Task created successfully');
     res.redirect('/tasks');
-    logger.info(`New task created by user ${req.user.username}`);
+    logger.info(`New task created by user ${req.user.email}`);
   } catch (err) {
     logger.error('Error creating task:', err);
     next(err);
@@ -62,7 +62,7 @@ exports.updateTaskStatus = async (req, res, next) => {
 
     req.flash('success_msg', 'Task status updated');
     res.redirect('/tasks');
-    logger.info(`Task ${id} status updated to ${status} by user ${req.user.username}`);
+    logger.info(`Task ${id} status updated to ${status} by user ${req.user.email}`);
   } catch (err) {
     logger.error('Error updating task status:', err);
     next(err);
@@ -81,7 +81,7 @@ exports.deleteTask = async (req, res, next) => {
 
     req.flash('success_msg', 'Task deleted successfully');
     res.redirect('/tasks');
-    logger.info(`Task ${id} deleted by user ${req.user.username}`);
+    logger.info(`Task ${id} deleted by user ${req.user.email}`);
   } catch (err) {
     logger.error('Error deleting task:', err);
     next(err);
@@ -131,7 +131,7 @@ exports.updateTask = async (req, res, next) => {
 
     req.flash('success_msg', 'Task updated successfully');
     res.redirect('/tasks');
-    logger.info(`Task ${req.params.id} updated by user ${req.user.username}`);
+    logger.info(`Task ${req.params.id} updated by user ${req.user.email}`);
   } catch (err) {
     logger.error('Error updating task:', err);
     next(err);

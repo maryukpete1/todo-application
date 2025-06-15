@@ -16,7 +16,7 @@ const routes = require('./routes');
 const app = express();
 
 // Passport config
-require('./config/passport');
+require('./config/passport')(passport);
 
 // View engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -27,8 +27,10 @@ app.set('layout extractScripts', true);
 app.set('layout extractStyles', true);
 
 // Middlewares
-app.use(helmet());
-app.use(morgan('combined', { stream: logger.stream }));
+app.use(helmet({
+  contentSecurityPolicy: false // Disable CSP for development
+}));
+app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
@@ -36,22 +38,23 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(methodOverride('_method'));
 
 // Session
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    store: MongoStore.create({
-      mongoUrl: process.env.MONGODB_URI,
-      ttl: 14 * 24 * 60 * 60, // 14 days
-    }),
-    cookie: {
-      maxAge: 1000 * 60 * 60 * 24 * 14, // 14 days
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-    },
-  })
-);
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI,
+    ttl: 14 * 24 * 60 * 60, // 14 days
+    autoRemove: 'native', // Use MongoDB's TTL index
+    touchAfter: 24 * 3600 // Only update session once per day
+  }),
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 24 * 14, // 14 days
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
+  }
+}));
 
 // Flash messages
 app.use(flash());

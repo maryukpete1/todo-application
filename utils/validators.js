@@ -2,23 +2,29 @@ const { check } = require('express-validator');
 const User = require('../models/User');
 
 exports.registerValidator = [
-  check('username')
-    .notEmpty().withMessage('Username is required')
-    .isLength({ min: 3 }).withMessage('Username must be at least 3 characters')
-    .custom(async (username) => {
-      const user = await User.findOne({ username });
+  check('email')
+    .notEmpty().withMessage('Email is required')
+    .isEmail().withMessage('Please provide a valid email')
+    .custom(async (email) => {
+      const user = await User.findOne({ email: email.toLowerCase() });
       if (user) {
-        throw new Error('Username already in use');
+        throw new Error('Email already in use');
       }
     }),
+  check('name')
+    .notEmpty().withMessage('Name is required')
+    .isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
   check('password')
     .notEmpty().withMessage('Password is required')
     .isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
 ];
 
 exports.loginValidator = [
-  check('username').notEmpty().withMessage('Username is required'),
-  check('password').notEmpty().withMessage('Password is required'),
+  check('email')
+    .notEmpty().withMessage('Email is required')
+    .isEmail().withMessage('Please provide a valid email'),
+  check('password')
+    .notEmpty().withMessage('Password is required'),
 ];
 
 exports.taskValidator = [

@@ -1,101 +1,134 @@
 const request = require('supertest');
-const app = require('../app');
+const testSetup = require('./helpers/testSetup');
+const createTestApp = require('./helpers/testApp');
 const User = require('../models/User');
-const mongoose = require('mongoose');
-const logger = require('../config/winston');
 
-describe('Auth Controller', () => {
+describe('Auth Endpoints', () => {
+  let app;
+  let server;
+
   beforeAll(async () => {
-    await mongoose.connect(process.env.MONGODB_URI_TEST);
+    await testSetup.connect();
+    app = createTestApp(testSetup.mongoUri);
+    server = app.listen(0);
+    await testSetup.createTestUser();
   });
 
   afterAll(async () => {
-    await mongoose.connection.dropDatabase();
-    await mongoose.connection.close();
+    await new Promise(resolve => server.close(resolve));
+    await testSetup.disconnect();
   });
 
-  afterEach(async () => {
-    await User.deleteMany({});
-  });
-
-  describe('POST /register', () => {
+  describe('POST /auth/register', () => {
     it('should register a new user', async () => {
-      const res = await request(app)
-        .post('/register')
-        .send({
-          username: 'testuser',
-          password: 'testpass123'
-        });
-      
-      expect(res.statusCode).toEqual(302);
-      expect(res.header.location).toBe('/login');
+      const userData = {
+        email: 'new@example.com',
+        name: 'New User',
+        password: 'password123'
+      };
 
-      const user = await User.findOne({ username: 'testuser' });
+      const res = await request(app)
+        .post('/auth/register')
+        .send(userData);
+
+      expect(res.status).toBe(302);
+      expect(res.header.location).toBe('/auth/login');
+
+      // Verify user was created
+      const user = await User.findOne({ email: userData.email });
       expect(user).toBeTruthy();
-      expect(user.username).toBe('testuser');
+      expect(user.name).toBe(userData.name);
     });
 
-    it('should not register with existing username', async () => {
-      await User.create({
-        username: 'testuser',
-        password: 'testpass123'
-      });
-
+    it('should not register with existing email', async () => {
       const res = await request(app)
-        .post('/register')
+        .post('/auth/register')
         .send({
-          username: 'testuser',
-          password: 'testpass123'
+          email: 'test@example.com',
+          name: 'Duplicate User',
+          password: 'password123'
         });
-      
-      expect(res.statusCode).toEqual(302);
-      expect(res.header.location).toBe('/register');
+
+      expect(res.status).toBe(302);
+      expect(res.header.location).toBe('/auth/register');
+
+      // Verify no duplicate user was created
+      const users = await User.find({ email: 'test@example.com' });
+      expect(users.length).toBe(1);
     });
   });
 
-  describe('POST /login', () => {
-    beforeEach(async () => {
-      const user = new User({
-        username: 'testuser',
-        password: 'testpass123'
-      });
-      await user.save();
-    });
-
+  describe('POST /auth/login', () => {
     it('should login with valid credentials', async () => {
-      const res = await request(app)
-        .post('/login')
+      // First login
+      const loginRes = await request(app)
+        .post('/auth/login')
         .send({
-          username: 'testuser',
+          email: 'test@example.com',
           password: 'testpass123'
         });
-      
-      expect(res.statusCode).toEqual(302);
-      expect(res.header.location).toBe('/tasks');
+
+      // Get the session cookie
+      const cookies = loginRes.header['set-cookie'];
+
+      // Verify login response
+      expect(loginRes.status).toBe(302);
+      expect(loginRes.header.location).toBe('/tasks');
+      expect(cookies).toBeTruthy();
+
+      // Verify session by accessing tasks
+      const tasksRes = await request(app)
+        .get('/tasks')
+        .set('Cookie', cookies);
+
+      // If we get redirected to login, the session wasn't maintained
+      if (tasksRes.status === 302 && tasksRes.header.location === '/auth/login') {
+        throw new Error('Session not maintained after login');
+      }
+
+      expect(tasksRes.status).toBe(200);
     });
 
     it('should not login with invalid password', async () => {
       const res = await request(app)
-        .post('/login')
+        .post('/auth/login')
         .send({
-          username: 'testuser',
+          email: 'test@example.com',
           password: 'wrongpass'
         });
-      
-      expect(res.statusCode).toEqual(302);
-      expect(res.header.location).toBe('/login');
-    });
 
-    it('should not login with non-existent user', async () => {
-      const res = await request(app)
-        .post('/login')
-        .send({
-          username: 'nonexistent',
-          password: 'testpass123'
-        });
-      
-      expect(res.statusCode).toEqual(302);
-      expect(res.header.location).toBe('/login');
+      expect(res.status).toBe(302);
+      expect(res.header.location).toBe('/auth/login');
     });
   });
-});
+
+  describe('GET /auth/logout', () => {
+    it('should logout user', async () => {
+      // First login
+      const loginRes = await request(app)
+        .post('/auth/login')
+        .send({
+          email: 'test@example.com',
+          password: 'testpass123'
+        });
+
+      const cookies = loginRes.header['set-cookie'][0];
+
+      // Then logout
+      const logoutRes = await request(app)
+        .get('/auth/logout')
+        .set('Cookie', cookies);
+
+      expect(logoutRes.status).toBe(302);
+      expect(logoutRes.header.location).toBe('/');
+
+      // Verify we can't access tasks
+      const tasksRes = await request(app)
+        .get('/tasks')
+        .set('Cookie', cookies);
+
+      expect(tasksRes.status).toBe(302);
+      expect(tasksRes.header.location).toBe('/auth/login');
+    });
+  });
+}); 

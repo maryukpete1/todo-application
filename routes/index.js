@@ -9,7 +9,7 @@ router.get('/', (req, res) => {
 });
 
 // Auth Routes
-router.use('/', authRoutes);
+router.use('/auth', authRoutes);
 
 // Task Routes
 router.use('/tasks', taskRoutes);
