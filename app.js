@@ -40,8 +40,8 @@ app.use(methodOverride('_method'));
 // Session
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: false,
-  saveUninitialized: false,
+  resave: true,
+  saveUninitialized: true,
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI,
     ttl: 14 * 24 * 60 * 60, // 14 days
@@ -52,7 +52,8 @@ app.use(session({
     maxAge: 1000 * 60 * 60 * 24 * 14, // 14 days
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax'
+    sameSite: 'lax',
+    path: '/'
   }
 }));
 
@@ -63,7 +64,7 @@ app.use(flash());
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Global variables
+// Global variables - must be after session and flash
 app.use((req, res, next) => {
   res.locals.user = req.user || null;
   res.locals.success_msg = req.flash('success_msg');
