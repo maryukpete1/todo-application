@@ -113,9 +113,9 @@ describe('Auth Endpoints', () => {
         .get('/auth/logout')
         .set('Cookie', cookies);
 
-      // After logout, we get redirected to login due to session destruction
+      // After logout, we get redirected to home page
       expect(logoutRes.status).toBe(302);
-      expect(logoutRes.header.location).toBe('/auth/login');
+      expect(logoutRes.header.location).toBe('/');
 
       // Verify we can't access tasks
       const tasksRes = await request(app)

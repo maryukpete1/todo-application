@@ -111,6 +111,8 @@ exports.login = (req, res, next) => {
 
 exports.logout = (req, res, next) => {
   const userEmail = req.user ? req.user.email : 'unknown';
+
+  req.flash('success_msg', 'You have been logged out successfully');
   
   // Save session before logout
   req.session.save((err) => {
@@ -135,7 +137,6 @@ exports.logout = (req, res, next) => {
         }
 
         logger.info(`User logged out: ${userEmail}`);
-        req.flash('success_msg', 'You have been logged out successfully');
         res.redirect('/');
       });
     });
