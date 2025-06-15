@@ -1,0 +1,256 @@
+:root {
+  --primary-color: #3498db;
+  --secondary-color: #2980b9;
+  --success-color: #2ecc71;
+  --danger-color: #e74c3c;
+  --warning-color: #f39c12;
+  --light-color: #ecf0f1;
+  --dark-color: #2c3e50;
+  --gray-color: #95a5a6;
+  --white-color: #ffffff;
+  --shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  color: var(--dark-color);
+  background-color: var(--light-color);
+}
+
+header {
+  background-color: var(--white-color);
+  box-shadow: var(--shadow);
+  padding: 1rem;
+}
+
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.logo h1 {
+  color: var(--primary-color);
+}
+
+.nav-links {
+  display: flex;
+  list-style: none;
+}
+
+.nav-links li {
+  margin-left: 1.5rem;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: var(--dark-color);
+  font-weight: 500;
+}
+
+.nav-links a:hover {
+  color: var(--primary-color);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.alert {
+  padding: 0.8rem;
+  margin: 1rem 0;
+  border-radius: 4px;
+}
+
+.alert-success {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.alert-danger {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.btn {
+  display: inline-block;
+  background-color: var(--primary-color);
+  color: var(--white-color);
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s;
+}
+
+.btn:hover {
+  background-color: var(--secondary-color);
+}
+
+.btn-complete {
+  background-color: var(--success-color);
+}
+
+.btn-complete:hover {
+  background-color: #27ae60;
+}
+
+.btn-pending {
+  background-color: var(--warning-color);
+}
+
+.btn-pending:hover {
+  background-color: #e67e22;
+}
+
+.btn-delete {
+  background-color: var(--danger-color);
+}
+
+.btn-delete:hover {
+  background-color: #c0392b;
+}
+
+.btn-cancel {
+  background-color: var(--gray-color);
+}
+
+.btn-cancel:hover {
+  background-color: #7f8c8d;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.form-group textarea {
+  min-height: 100px;
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.filter-buttons {
+  margin-bottom: 1.5rem;
+}
+
+.filter-buttons a {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  margin-right: 0.5rem;
+  background-color: var(--white-color);
+  color: var(--dark-color);
+  text-decoration: none;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.filter-buttons a.active {
+  background-color: var(--primary-color);
+  color: var(--white-color);
+}
+
+.filter-buttons a:hover:not(.active) {
+  background-color: #ddd;
+}
+
+.task-list {
+  list-style: none;
+}
+
+.task-item {
+  background-color: var(--white-color);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+  box-shadow: var(--shadow);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.task-item.completed {
+  opacity: 0.7;
+  border-left: 4px solid var(--success-color);
+}
+
+.task-item.pending {
+  border-left: 4px solid var(--warning-color);
+}
+
+.task-content h3 {
+  margin-bottom: 0.5rem;
+}
+
+.due-date {
+  color: var(--gray-color);
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.task-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.error-container {
+  text-align: center;
+  padding: 5rem 0;
+}
+
+.error-container h1 {
+  font-size: 5rem;
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+}
+
+.error-container p {
+  font-size: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+  .task-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .task-actions {
+    margin-top: 1rem;
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
